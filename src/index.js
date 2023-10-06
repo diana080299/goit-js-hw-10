@@ -14,40 +14,69 @@ const refs = {
   error: document.querySelector('.error'),
 };
 
-refs.loading.classList.add('is-hidden');
-refs.error.classList.add('is-hidden')
+window.addEventListener("load", wrap);
+
+refs.catInfo.classList.add('is-hidden');
+refs.error.style.display = 'none';
+
+load()
+
+function wrap() {
+    fetchBreeds()
+.then(response => 
+    creatMap(response))
+  .catch(responseError)
+    .finally(load)
+}
+
+let array =[] 
+
+function creatMap(response) {
+    response.map(({name, id})=> (array.push({ text:name, value:id})));
+    scroll(array)
+    load()
+}
+
+function scroll (array){
+    new SlimSelect({
+        select: refs.selector,
+        data: array
+    });
+    }
 
 
+refs.selector.addEventListener('change', onSelector)
 
-fetchBreeds().then(response => 
-    { const selectedBreed = response.map(obj => ({text: obj.name, value: obj.id}))
+let firstSelect = true;
 
-selectedBreed.forEach(optionData => {
-    const option = document.createElement('option')
-    option.value = optionData.value;
-    option.text = optionData.text;
-    refs.selector.appendChild(option);
-})}).catch(error => { 
-    responseError();
-});
+function onSelector(event) {
+    if (!firstSelect) {
+        onChangeBreed()
+    } else {
+        firstSelect = false;
+    }
+}
 
 
-refs.selector.addEventListener('change', onChangeBreed)
+function onChangeBreed() {
+    const breedId = refs.selector.value;
 
-function onChangeBreed(event) {
-    refs.loading.classList.remove('is-hidden');
-    refs.selector.classList.add('is-hidden');
-    refs.catInfo.classList.add('is-hidden');
+    fetchCatByBreed(breedId).then(response => {
+        
+        refs.catInfo.innerHTML  = createMarkup(response);
+       
+    })
+    .catch(responseError)
+    .finally(load)
 
-    const breedId = event.currentTarget.value;
+}
 
-    fetchCatByBreed(breedId).then( data => {
-        refs.loading.classList.add('is-hidden');
-        refs.selector.classList.remove('is-hidden')
 
-        const {url, breeds} = data[0];
+    function createMarkup(arr) {
+        refs.loading.classList.toggle('is-hidden');
+        refs.catInfo.classList.remove('is-hidden')
 
-refs.catInfo.innerHTML = `
+        return arr.map(({url, breeds}) => `
 <div class="box-img">
 <img src="${url}" alt="${breeds[0].name}" width="400"/>
 </div>
@@ -55,21 +84,20 @@ refs.catInfo.innerHTML = `
 <h1 class="tittle">${breeds[0].name}</h1>
 <p class="subtitle">${breeds[0].description}</p>
 <p class="breed"><b>Temperament:</b> ${breeds[0].temperament}</p>
-</div>`
-new SlimSelect({
-    select: '#single',
-  });
-
-refs.catInfo.classList.remove('is-hidden');
-
-    }).catch(error => 
-        responseError(error)); 
+</div>`)
 }
+
 
 function responseError() {
     refs.selector.classList.add('is-hidden');
-    refs.error.classList.remove('is-hidden'); Notiflix.Notify.failure(
+    refs.error.classList.add('is-hidden'); 
+    refs.catInfo.classList.add('is-ho=idden');         
+    Notiflix.Notify.failure(
         'Oops! Something went wrong! Try reloading the page!'
       );
     }
     
+
+    function load () {
+        refs.loading.classList.toggle('is-hidden')
+    }
